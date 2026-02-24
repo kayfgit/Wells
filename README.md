@@ -17,7 +17,7 @@ Then open `http://localhost:5173`.
 
 or
 
-Open `website name`
+Open `https://dig-through-earth.pages.dev/`
 
 ---
 

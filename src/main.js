@@ -63,21 +63,19 @@ function updateInfoPanel() {
   $('from-coords').textContent = state.activePoint ? coordsLabel(state.activePoint) : '';
 
   // --- TO side ---
-  if (state.antipodeFeature) {
-    const toName = state.antipodeFeature.properties.name;
-    $('to-name').textContent = toName;
-    $('to-name').className = 'info-country is-red';
-    $('to-coords').textContent = state.antipodePoint ? coordsLabel(state.antipodePoint) : '';
+  const isOcean = !state.antipodeFeature;
+  const toName = isOcean ? 'The Ocean' : state.antipodeFeature.properties.name;
 
-    funFact.textContent = funMessage(fromName, toName, false);
+  $('to-name').textContent = toName;
+  $('to-name').className = isOcean ? 'info-country is-ocean' : 'info-country is-red';
+  $('to-coords').textContent = state.antipodePoint ? coordsLabel(state.antipodePoint) : '';
+
+  // Fun fact only appears when the user clicks to lock a location
+  if (state.isLocked) {
+    funFact.textContent = funMessage(fromName, isOcean ? null : toName, isOcean);
     funFact.classList.remove('hidden');
   } else {
-    $('to-name').textContent = 'The Ocean';
-    $('to-name').className = 'info-country is-ocean';
-    $('to-coords').textContent = state.antipodePoint ? coordsLabel(state.antipodePoint) : '';
-
-    funFact.textContent = funMessage(fromName, null, true);
-    funFact.classList.remove('hidden');
+    funFact.classList.add('hidden');
   }
 }
 
@@ -126,11 +124,20 @@ function activate(feature, point) {
   }
 }
 
+let lastAntipodeFeature = undefined; // track to avoid pointsData churn
+let lastLockedState = false;
+
 function refreshGlobe() {
   globe
     .polygonCapColor(capColor)
-    .polygonAltitude(polyAlt)
-    .pointsData(markerPoints());
+    .polygonAltitude(polyAlt);
+
+  // Rebuild point markers when antipode target or lock state changes
+  if (state.antipodeFeature !== lastAntipodeFeature || state.isLocked !== lastLockedState) {
+    lastAntipodeFeature = state.antipodeFeature;
+    lastLockedState = state.isLocked;
+    globe.pointsData(markerPoints());
+  }
 }
 
 // ─── Color + altitude helpers ────────────────────────────────────────────────
@@ -142,19 +149,20 @@ function activeFeature() {
 function capColor(feat) {
   const active = activeFeature();
   if (feat === active)               return 'rgba(122, 158, 126, 0.8)';  // moss green
-  if (feat === state.antipodeFeature) return 'rgba(194, 113, 94, 0.8)';  // terracotta
+  if (state.isLocked && feat === state.antipodeFeature) return 'rgba(194, 113, 94, 0.8)';  // terracotta only when locked
   return 'rgba(240, 230, 211, 0.1)'; // subtle warm tint so land is visible
 }
 
 function polyAlt(feat) {
   const active = activeFeature();
-  if (feat === active || feat === state.antipodeFeature) return 0.018;
+  if (feat === active) return 0.018;
+  if (state.isLocked && feat === state.antipodeFeature) return 0.018;
   return 0.006; // lift above globe surface to prevent z-fighting
 }
 
 function markerPoints() {
   const pts = [];
-  if (state.antipodePoint) {
+  if (state.isLocked && state.antipodePoint) {
     pts.push({
       lat: state.antipodePoint[1],
       lng: state.antipodePoint[0],
@@ -185,7 +193,7 @@ async function init() {
   const container = $('globe');
 
   // Flat matte globe — warm mid-brown so countries pop
-  const globeMat = new THREE.MeshLambertMaterial({ color: '#3a2e24' });
+  const globeMat = new THREE.MeshBasicMaterial({ color: '#3a2e24' });
 
   globe = Globe({
     animateIn: true,
@@ -209,9 +217,6 @@ async function init() {
     .polygonSideColor(() => 'rgba(0, 0, 0, 0.0)')
     .polygonStrokeColor(() => 'rgba(240, 230, 211, 0.18)')
     .polygonAltitude(polyAlt)
-    .polygonLabel(({ properties: p }) =>
-      `<div class="globe-tooltip">${p.name}</div>`
-    )
 
     // Antipode marker (exact point)
     .pointsData([])
@@ -250,7 +255,7 @@ async function init() {
     });
 
   // ── Renderer quality ────────────────────────────────────────
-  globe.renderer().setPixelRatio(window.devicePixelRatio);
+  globe.renderer().setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
   // ── Real-time cursor tracking ────────────────────────────────
   // Updates coordinates + antipode as the cursor moves across the globe.
@@ -322,19 +327,30 @@ async function init() {
     }
   }, { capture: true, passive: false });
 
-  // ── Auto-rotate until first touch ──────────────────────────
+  // ── Auto-rotate with idle resume ────────────────────────────
   controls.autoRotate = true;
   controls.autoRotateSpeed = 0.4;
   controls.enableDamping = true;
   controls.dampingFactor = 0.12;
   controls.rotateSpeed = 0.8;
 
-  container.addEventListener('mousedown', stopAutoRotate, { once: true });
-  container.addEventListener('touchstart', stopAutoRotate, { once: true });
+  let idleTimer = null;
+  const IDLE_MS = 3000;
 
-  function stopAutoRotate() {
+  function onUserInput() {
+    // Stop spinning immediately on any interaction
     controls.autoRotate = false;
+    // Reset the idle countdown
+    clearTimeout(idleTimer);
+    idleTimer = setTimeout(() => {
+      // Smoothly resume spin after idle period
+      controls.autoRotate = true;
+    }, IDLE_MS);
   }
+
+  container.addEventListener('mousedown', onUserInput);
+  container.addEventListener('touchstart', onUserInput, { passive: true });
+  container.addEventListener('wheel', onUserInput, { passive: true });
 
   // ── Window resize ───────────────────────────────────────────
   window.addEventListener('resize', () => {

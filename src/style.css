@@ -1,0 +1,487 @@
+/* ═══════════════════════════════════════════════════════════════
+   DIG THROUGH EARTH — Earthy Exploration Journal
+   ═══════════════════════════════════════════════════════════════ */
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  /* ── Earthy palette ── */
+  --clay:       #c2715e;
+  --clay-dim:   #8b5a4a;
+  --moss:       #7a9e7e;
+  --moss-dim:   #5a7a5e;
+  --ochre:      #d4a954;
+  --cream:      #f0e6d3;
+  --cream-dim:  #b8a88e;
+  --soil:       #1a1410;
+  --soil-mid:   #2a2018;
+  --soil-light: #3a2e22;
+
+  /* ── Semantic tokens ── */
+  --blue:       var(--moss);
+  --red:        var(--clay);
+  --gold:       var(--ochre);
+  --bg:         var(--soil);
+  --text:       var(--cream);
+  --muted:      var(--cream-dim);
+
+  /* ── Panel ── */
+  --panel-bg:     rgba(26, 20, 16, 0.82);
+  --panel-border: rgba(240, 230, 211, 0.08);
+  --radius:       16px;
+
+  /* ── Type ── */
+  --font-display: 'DM Serif Display', Georgia, serif;
+  --font-body:    'DM Sans', system-ui, sans-serif;
+}
+
+/* ─── Base ─────────────────────────────────────────────────────── */
+
+html, body {
+  width: 100%;
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  overflow: hidden;
+  user-select: none;
+  font-family: var(--font-body);
+}
+
+#app {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  /* Warm gradient background instead of star field */
+  background:
+    radial-gradient(ellipse 120% 80% at 50% 100%, rgba(42, 32, 24, 0.9) 0%, transparent 70%),
+    radial-gradient(ellipse 80% 50% at 20% 20%, rgba(139, 90, 74, 0.08) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 60% at 80% 30%, rgba(122, 158, 126, 0.06) 0%, transparent 50%),
+    var(--bg);
+}
+
+/* Subtle noise overlay for texture */
+#app::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0.025;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 256px 256px;
+}
+
+/* ─── Globe ─────────────────────────────────────────────────────── */
+
+#globe-wrap {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#globe {
+  width: 100%;
+  height: 100%;
+}
+
+/* ─── Loading ────────────────────────────────────────────────────── */
+
+#loading {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg);
+  z-index: 100;
+  transition: opacity 0.8s ease;
+}
+
+#loading.fade-out {
+  opacity: 0;
+  pointer-events: none;
+}
+
+#loading-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  color: var(--cream-dim);
+  letter-spacing: 0.02em;
+}
+
+#loading-spinner {
+  width: 36px;
+  height: 36px;
+  border: 2px solid rgba(194, 113, 94, 0.15);
+  border-top-color: var(--clay);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ─── Header ─────────────────────────────────────────────────────── */
+
+#header {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 20;
+  padding: 18px 22px;
+  pointer-events: none;
+  animation: fadeSlideIn 0.8s ease 0.3s both;
+}
+
+#header-inner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+#header-text h1 {
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 400;
+  font-style: italic;
+  letter-spacing: 0.01em;
+  color: var(--cream);
+  opacity: 0.85;
+}
+
+#header-text p {
+  font-family: var(--font-body);
+  font-size: 0.6rem;
+  font-weight: 400;
+  color: var(--cream-dim);
+  opacity: 0.5;
+  margin-top: 1px;
+  letter-spacing: 0.06em;
+}
+
+/* ─── Info Panel (top-right card) ────────────────────────────────── */
+
+#info-panel {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  padding: 14px 15px;
+  width: 210px;
+  transition: opacity 0.35s ease, transform 0.35s ease;
+  box-shadow:
+    0 2px 20px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(240, 230, 211, 0.04);
+  animation: fadeSlideIn 0.6s ease both;
+}
+
+#info-panel.hidden {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-6px);
+}
+
+@keyframes fadeSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ── Panel header row ── */
+
+#panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(240, 230, 211, 0.06);
+}
+
+#panel-header > .info-label {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 0.72rem;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  color: var(--clay-dim);
+}
+
+#lock-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-family: var(--font-body);
+  font-size: 0.52rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ochre);
+  background: rgba(212, 169, 84, 0.1);
+  border: 1px solid rgba(212, 169, 84, 0.2);
+  border-radius: 4px;
+  padding: 2px 6px;
+}
+
+#lock-indicator svg {
+  width: 9px;
+  height: 9px;
+}
+
+#lock-indicator.hidden { display: none; }
+
+/* ── From / To blocks ── */
+
+#info-from,
+#info-to {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.info-label {
+  font-family: var(--font-body);
+  font-size: 0.52rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--cream-dim);
+  opacity: 0.6;
+}
+
+.info-country {
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  font-weight: 400;
+  color: var(--cream);
+  line-height: 1.2;
+  transition: color 0.25s;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.info-country.is-blue  { color: var(--moss); }
+.info-country.is-red   { color: var(--clay); }
+.info-country.is-ocean { color: var(--ochre); }
+
+.info-coords {
+  font-family: var(--font-body);
+  font-size: 0.58rem;
+  color: var(--cream-dim);
+  opacity: 0.5;
+  font-variant-numeric: tabular-nums;
+  margin-top: 1px;
+}
+
+/* ─── Arrow divider (horizontal) ─────────────────────────────────── */
+
+#info-arrow {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0;
+  padding: 9px 0;
+}
+
+#arrow-line,
+#arrow-line-2 {
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(to right, rgba(122, 158, 126, 0.3), rgba(194, 113, 94, 0.3));
+}
+
+#arrow-line-2 {
+  background: linear-gradient(to right, rgba(194, 113, 94, 0.3), rgba(194, 113, 94, 0.1));
+}
+
+#arrow-icon {
+  flex-shrink: 0;
+  line-height: 0;
+  padding: 0 6px;
+  color: var(--clay-dim);
+  animation: bob 2.4s ease-in-out infinite;
+}
+
+#arrow-icon svg {
+  width: 12px;
+  height: 12px;
+  stroke-width: 2;
+}
+
+@keyframes bob {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(3px); }
+}
+
+/* ─── Fun fact (inside panel) ────────────────────────────────────── */
+
+#fun-fact {
+  margin-top: 10px;
+  padding-top: 9px;
+  border-top: 1px solid rgba(240, 230, 211, 0.06);
+  font-family: var(--font-body);
+  font-size: 0.6rem;
+  font-style: italic;
+  color: var(--cream-dim);
+  opacity: 0.6;
+  line-height: 1.5;
+  white-space: normal;
+}
+
+#fun-fact.hidden { display: none; }
+
+/* ─── Controls bar ───────────────────────────────────────────────── */
+
+#controls {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 18px 24px;
+  background: linear-gradient(to top, rgba(26, 20, 16, 0.8) 40%, transparent);
+  animation: fadeSlideUp 0.8s ease 0.5s both;
+}
+
+@keyframes fadeSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+#btn-locate {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-body);
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--cream);
+  background: rgba(194, 113, 94, 0.12);
+  border: 1px solid rgba(194, 113, 94, 0.25);
+  border-radius: 10px;
+  padding: 9px 18px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  white-space: nowrap;
+}
+
+#btn-locate svg {
+  width: 14px;
+  height: 14px;
+  stroke-width: 1.75;
+}
+
+#btn-locate:hover {
+  background: rgba(194, 113, 94, 0.22);
+  border-color: rgba(194, 113, 94, 0.45);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(194, 113, 94, 0.15);
+}
+
+#btn-locate:active {
+  transform: translateY(0);
+  box-shadow: none;
+}
+
+#btn-locate:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+#hint-text {
+  font-family: var(--font-body);
+  font-size: 0.62rem;
+  color: var(--cream-dim);
+  opacity: 0.4;
+  letter-spacing: 0.03em;
+}
+
+/* ─── Lucide icon defaults ───────────────────────────────────────── */
+
+svg.lucide {
+  display: inline-block;
+  vertical-align: middle;
+  stroke-width: 1.75;
+}
+
+/* ─── Globe tooltip override ─────────────────────────────────────── */
+
+.globe-tooltip {
+  font-family: var(--font-display);
+  font-size: 0.82rem;
+  font-weight: 400;
+  font-style: italic;
+  background: rgba(26, 20, 16, 0.92);
+  color: var(--cream);
+  border: 1px solid rgba(240, 230, 211, 0.1);
+  border-radius: 8px;
+  padding: 5px 12px;
+  pointer-events: none;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+}
+
+/* ─── Responsive ─────────────────────────────────────────────────── */
+
+@media (max-width: 520px) {
+  #info-panel {
+    width: 180px;
+    padding: 11px 12px;
+    top: 12px;
+    right: 12px;
+  }
+
+  .info-country {
+    font-size: 0.85rem;
+  }
+
+  #header {
+    padding: 14px 16px;
+  }
+
+  #header-text h1 {
+    font-size: 0.9rem;
+  }
+
+  #controls {
+    flex-direction: column;
+    gap: 6px;
+    padding: 12px 16px;
+  }
+}

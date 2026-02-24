@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dig Through Earth — What's on the other side?</title>
+    <meta name="description" content="What country is on the exact opposite side of the Earth from where you're standing? Hover over the globe and find out." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <div id="app">
+
+      <!-- Header -->
+      <header id="header">
+        <div id="header-inner">
+          <div id="header-text">
+            <h1>Dig Through Earth</h1>
+            <p>what's on the other side?</p>
+          </div>
+        </div>
+      </header>
+
+      <!-- Loading screen -->
+      <div id="loading">
+        <div id="loading-inner">
+          <div id="loading-spinner"></div>
+          <p>Mapping the world…</p>
+        </div>
+      </div>
+
+      <!-- Globe container -->
+      <div id="globe-wrap">
+        <div id="globe"></div>
+      </div>
+
+      <!-- Top-right info card -->
+      <div id="info-panel" class="hidden">
+        <div id="panel-header">
+          <span class="info-label">Antipode Finder</span>
+          <span id="lock-indicator" class="hidden"><i data-lucide="lock"></i> LOCKED</span>
+        </div>
+
+        <div id="info-from">
+          <div class="info-label">Here</div>
+          <div class="info-country" id="from-name">—</div>
+          <div class="info-coords" id="from-coords"></div>
+        </div>
+
+        <div id="info-arrow">
+          <div id="arrow-line"></div>
+          <div id="arrow-icon"><i data-lucide="arrow-down"></i></div>
+          <div id="arrow-line-2"></div>
+        </div>
+
+        <div id="info-to">
+          <div class="info-label">Antipode</div>
+          <div class="info-country" id="to-name">—</div>
+          <div class="info-coords" id="to-coords"></div>
+        </div>
+
+        <div id="fun-fact" class="hidden"></div>
+      </div>
+
+      <!-- Bottom controls -->
+      <div id="controls">
+        <button id="btn-locate"><i data-lucide="map-pin"></i> <span id="btn-locate-text">Find My Antipode</span></button>
+        <div id="hint-text">Hover to explore · Click to lock · Esc to unlock</div>
+      </div>
+
+    </div>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

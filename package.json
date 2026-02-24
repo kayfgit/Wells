@@ -1,0 +1,20 @@
+{
+  "name": "antipode",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "d3-geo": "^3.1.0",
+    "globe.gl": "^2.31.0",
+    "lucide": "^0.575.0",
+    "topojson-client": "^3.1.0"
+  },
+  "devDependencies": {
+    "vite": "^5.4.0"
+  }
+}

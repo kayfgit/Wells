@@ -20,6 +20,8 @@ const state = {
 };
 
 let globe;
+let globeControls;
+let idleTimer;
 
 // ─── Antipode math ───────────────────────────────────────────────────────────
 
@@ -132,11 +134,12 @@ function refreshGlobe() {
     .polygonCapColor(capColor)
     .polygonAltitude(polyAlt);
 
-  // Rebuild point markers when antipode target or lock state changes
+  // Rebuild point markers + labels when antipode target or lock state changes
   if (state.antipodeFeature !== lastAntipodeFeature || state.isLocked !== lastLockedState) {
     lastAntipodeFeature = state.antipodeFeature;
     lastLockedState = state.isLocked;
     globe.pointsData(markerPoints());
+    globe.htmlElementsData(markerLabels());
   }
 }
 
@@ -170,6 +173,21 @@ function markerPoints() {
     });
   }
   return pts;
+}
+
+function markerLabels() {
+  if (!state.isLocked || !state.antipodePoint) return [];
+  return [{
+    lat: state.antipodePoint[1],
+    lng: state.antipodePoint[0],
+  }];
+}
+
+function createLabelElement() {
+  const el = document.createElement('div');
+  el.className = 'antipode-label';
+  el.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg> Here!';
+  return el;
 }
 
 // ─── Globe setup ─────────────────────────────────────────────────────────────
@@ -210,6 +228,7 @@ async function init() {
     .backgroundColor('rgba(0,0,0,0)')
     .atmosphereColor('rgba(210, 140, 100, 0.22)')
     .atmosphereAltitude(0.2)
+    .pointOfView({ altitude: window.innerWidth <= 520 ? 4 : 2.5 })
 
     // Countries
     .polygonsData(state.features)
@@ -226,6 +245,14 @@ async function init() {
     .pointsMerge(false)
     .pointLabel(d => `<div class="globe-tooltip">Antipode: ${d.label}</div>`)
 
+    // Antipode floating label (auto-hides behind globe)
+    .htmlElementsData([])
+    .htmlElement(() => createLabelElement())
+    .htmlLat(d => d.lat)
+    .htmlLng(d => d.lng)
+    .htmlAltitude(0.1)
+    .htmlTransitionDuration(0)
+
     // ── Click interaction (lock / unlock) ────────────────────
     .onPolygonClick((feat, _ev, { lat, lng }) => {
       if (state.isLocked && feat === state.locked) {
@@ -237,6 +264,7 @@ async function init() {
       refreshGlobe();
       updateInfoPanel();
       setLockBadge(true);
+      stopRotation();
     })
 
     .onGlobeClick(({ lat, lng }) => {
@@ -252,6 +280,7 @@ async function init() {
       refreshGlobe();
       updateInfoPanel();
       setLockBadge(true);
+      stopRotation();
     });
 
   // ── Renderer quality ────────────────────────────────────────
@@ -314,7 +343,8 @@ async function init() {
   });
 
   // ── Ctrl / Shift scroll zoom speed ─────────────────────────
-  const controls = globe.controls();
+  globeControls = globe.controls();
+  const controls = globeControls;
   const BASE_ZOOM = 1.0;
   container.addEventListener('wheel', e => {
     if (e.ctrlKey) {
@@ -334,16 +364,17 @@ async function init() {
   controls.dampingFactor = 0.12;
   controls.rotateSpeed = 0.8;
 
-  let idleTimer = null;
-  const IDLE_MS = 3000;
+  idleTimer = null;
+  const IDLE_MS = 5000;
 
   function onUserInput() {
     // Stop spinning immediately on any interaction
     controls.autoRotate = false;
     // Reset the idle countdown
     clearTimeout(idleTimer);
+    // Don't resume spinning while a location is locked
+    if (state.isLocked) return;
     idleTimer = setTimeout(() => {
-      // Smoothly resume spin after idle period
       controls.autoRotate = true;
     }, IDLE_MS);
   }
@@ -368,10 +399,96 @@ async function init() {
   // ── Init Lucide icons ──────────────────────────────────────
   createIcons({ icons: { MapPin, Lock, ArrowDown } });
 
+  // ── Draggable info panel on mobile ────────────────────────
+  if (window.innerWidth <= 520) {
+    initDraggablePanel($('info-panel'));
+  }
+
   // ── Fade out loading screen ─────────────────────────────────
   const loading = $('loading');
   loading.classList.add('fade-out');
   setTimeout(() => loading.remove(), 700);
+}
+
+// ─── Draggable panel (mobile) ─────────────────────────────────────────────────
+
+function initDraggablePanel(panel) {
+  let startX, startY, startLeft, startTop, dragging = false;
+  const EDGE_MARGIN = 10;
+
+  panel.addEventListener('touchstart', e => {
+    if (e.touches.length !== 1) return;
+    dragging = true;
+    const t = e.touches[0];
+    const rect = panel.getBoundingClientRect();
+    startX = t.clientX;
+    startY = t.clientY;
+    startLeft = rect.left;
+    startTop = rect.top;
+
+    // Switch to fixed positioning for drag
+    panel.style.position = 'fixed';
+    panel.style.left = startLeft + 'px';
+    panel.style.top = startTop + 'px';
+    panel.style.right = 'auto';
+    panel.style.bottom = 'auto';
+    panel.style.transform = 'none';
+    panel.style.transition = 'none';
+    panel.style.zIndex = '30';
+  }, { passive: true });
+
+  panel.addEventListener('touchmove', e => {
+    if (!dragging || e.touches.length !== 1) return;
+    const t = e.touches[0];
+    const dx = t.clientX - startX;
+    const dy = t.clientY - startY;
+
+    let newLeft = startLeft + dx;
+    let newTop = startTop + dy;
+
+    // Clamp inside viewport
+    const pw = panel.offsetWidth;
+    const ph = panel.offsetHeight;
+    newLeft = Math.max(EDGE_MARGIN, Math.min(window.innerWidth - pw - EDGE_MARGIN, newLeft));
+    newTop = Math.max(EDGE_MARGIN, Math.min(window.innerHeight - ph - EDGE_MARGIN, newTop));
+
+    panel.style.left = newLeft + 'px';
+    panel.style.top = newTop + 'px';
+  }, { passive: true });
+
+  panel.addEventListener('touchend', () => {
+    if (!dragging) return;
+    dragging = false;
+
+    // Snap to nearest horizontal edge
+    const rect = panel.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const snapLeft = centerX < window.innerWidth / 2;
+
+    panel.style.transition = 'left 0.25s ease, top 0.25s ease';
+    panel.style.left = snapLeft
+      ? EDGE_MARGIN + 'px'
+      : (window.innerWidth - rect.width - EDGE_MARGIN) + 'px';
+
+    // Clamp top
+    let finalTop = rect.top;
+    finalTop = Math.max(EDGE_MARGIN, Math.min(window.innerHeight - rect.height - EDGE_MARGIN, finalTop));
+    panel.style.top = finalTop + 'px';
+  });
+}
+
+// ─── Rotation helpers ────────────────────────────────────────────────────────
+
+function stopRotation() {
+  clearTimeout(idleTimer);
+  if (globeControls) globeControls.autoRotate = false;
+}
+
+function resumeIdleRotation() {
+  clearTimeout(idleTimer);
+  idleTimer = setTimeout(() => {
+    if (globeControls) globeControls.autoRotate = true;
+  }, 5000);
 }
 
 // ─── Unlock ──────────────────────────────────────────────────────────────────
@@ -384,6 +501,7 @@ function unlock() {
   refreshGlobe();
   updateInfoPanel();
   setLockBadge(false);
+  resumeIdleRotation();
 }
 
 // ─── Geolocation ─────────────────────────────────────────────────────────────
@@ -408,6 +526,7 @@ function handleLocateMe() {
       refreshGlobe();
       updateInfoPanel();
       setLockBadge(true);
+      stopRotation();
 
       // Fly the camera to the user's location
       globe.pointOfView({ lat, lng, altitude: 2.2 }, 1400);

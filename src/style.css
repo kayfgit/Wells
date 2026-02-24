@@ -469,49 +469,122 @@ svg.lucide {
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
 }
 
+/* ─── Antipode floating label ────────────────────────────────────── */
+
+.antipode-label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--font-display);
+  font-size: 0.9rem;
+  font-style: italic;
+  font-weight: 400;
+  color: var(--clay);
+  background: rgba(26, 20, 16, 0.88);
+  border: 1px solid rgba(194, 113, 94, 0.3);
+  border-radius: 8px;
+  padding: 5px 12px;
+  pointer-events: none;
+  white-space: nowrap;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
+  animation: labelPulse 2s ease-in-out infinite;
+  transform: translateX(-50%);
+}
+
+.antipode-label svg {
+  flex-shrink: 0;
+  color: var(--clay);
+}
+
+@keyframes labelPulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.7; }
+}
+
 /* ─── Responsive ─────────────────────────────────────────────────── */
 
-@media (max-width: 520px) {
+/* Tablet-ish */
+@media (max-width: 680px) {
   #info-panel {
-    width: 230px;
-    padding: 14px 16px;
-    top: 12px;
-    right: 12px;
+    width: 260px;
+    padding: 16px 18px;
   }
 
   .info-country {
-    font-size: 1.05rem;
+    font-size: 1.15rem;
   }
+}
 
-  .info-label {
-    font-size: 0.65rem;
-  }
-
-  .info-coords {
-    font-size: 0.7rem;
-  }
-
+/* Mobile */
+@media (max-width: 520px) {
+  /* Header: centered, slightly bigger title */
   #header {
-    padding: 14px 16px;
+    left: 0;
+    right: 0;
+    padding: 12px 16px;
+    display: flex;
+    justify-content: center;
   }
 
   #header-text h1 {
-    font-size: 1.15rem;
+    font-size: 1.2rem;
   }
 
   #header-text p {
-    font-size: 0.7rem;
+    display: none;
   }
 
   #logo svg {
-    width: 28px;
-    height: 28px;
+    width: 26px;
+    height: 26px;
   }
 
+  /* Panel: compact top-right, below header, hide header row + fun fact */
+  #info-panel {
+    top: 52px;
+    right: 10px;
+    width: auto;
+    min-width: 160px;
+    max-width: 200px;
+    padding: 10px 12px;
+    touch-action: none;
+  }
+
+  #panel-header {
+    display: none;
+  }
+
+  #fun-fact {
+    display: none !important;
+  }
+
+  .info-country {
+    font-size: 0.95rem;
+  }
+
+  .info-label {
+    font-size: 0.6rem;
+  }
+
+  .info-coords {
+    font-size: 0.62rem;
+  }
+
+  #info-arrow {
+    padding: 6px 0;
+  }
+
+  #arrow-icon svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  /* Controls: safe bottom spacing */
   #controls {
     flex-direction: column;
-    gap: 8px;
-    padding: 16px 18px;
+    gap: 6px;
+    padding: 10px 16px;
+    padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
   }
 
   #btn-locate {
@@ -520,6 +593,6 @@ svg.lucide {
   }
 
   #hint-text {
-    font-size: 0.68rem;
+    font-size: 0.6rem;
   }
 }

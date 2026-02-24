@@ -1,4 +1,4 @@
-# Dig Through Earth
+# Wells - Dig Through Earth
 
 > What's on the exact other side of the world from where you're standing?
 
@@ -17,7 +17,7 @@ Then open `http://localhost:5173`.
 
 or
 
-Open `https://dig-through-earth.pages.dev/`
+Open the [Cloudflare Page](https://dig-through-earth.pages.dev/)
 
 ---
 
